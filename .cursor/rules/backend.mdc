@@ -1,0 +1,6 @@
+# ORBIT-X Backend Rules
+
+- Use Python and FastAPI.
+- Use type hints and clear module boundaries.
+- Keep API contracts documented in docs/API_SPEC.md.
+- Add tests for security-sensitive behavior.

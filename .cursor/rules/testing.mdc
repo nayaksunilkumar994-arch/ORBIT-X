@@ -1,0 +1,6 @@
+# ORBIT-X Testing Rules
+
+- Test each security-critical module.
+- Maintain deterministic simulation fixtures where possible.
+- Verify the complete attack-to-response flow before feature freeze.
+- Do not advance a build day based only on code being written; verify it runs.

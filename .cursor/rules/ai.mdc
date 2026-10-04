@@ -1,0 +1,6 @@
+# ORBIT-X AI Rules
+
+- Keep ML experiments reproducible.
+- Record features, labels, metrics, and evaluation assumptions.
+- Report precision, recall, F1, false-positive behavior, and latency where applicable.
+- Do not present prototype risk thresholds as universal standards.

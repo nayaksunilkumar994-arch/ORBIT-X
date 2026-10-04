@@ -1,0 +1,7 @@
+# ORBIT-X Architecture Rules
+
+- ORBIT-X is a controlled cybersecurity simulation and digital-twin project.
+- All attack scenarios must operate only against the local simulated environment.
+- Preserve defined module boundaries and API contracts.
+- Do not modify unrelated modules without justification.
+- Prefer small, testable components and explicit interfaces.

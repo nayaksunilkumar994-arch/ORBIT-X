@@ -1,0 +1,6 @@
+# ORBIT-X Frontend Rules
+
+- Use React and TypeScript.
+- Keep UI components modular and accessible.
+- Prefer clear SOC-style information hierarchy.
+- Do not invent backend fields; follow the API contract.

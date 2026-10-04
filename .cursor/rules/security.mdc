@@ -1,0 +1,7 @@
+# ORBIT-X Security Rules
+
+- Never target unauthorized real-world systems.
+- Attack simulations must use synthetic/local events.
+- Never commit secrets, credentials, tokens, or private keys.
+- Apply authentication, authorization, input validation, logging, and least privilege.
+- Security-critical logic requires tests.

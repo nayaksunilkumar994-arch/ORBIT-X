@@ -6,6 +6,8 @@ from ai.ml.anomaly_detector import TelemetryAnomalyDetector
 from correlation.engine import CorrelationEngine
 from detection.engine import DetectionEngine
 from forensics.collector import ForensicCollector
+from recovery.engine import RecoveryEngine
+from recovery.validator import RecoveryValidator
 from response.engine import ResponseEngine
 from response.executor import ResponseExecutor
 from risk.engine import RiskEngine
@@ -57,6 +59,17 @@ class ORBITXService:
         self.response_engine = ResponseEngine()
         self.response_executor = ResponseExecutor()
 
+        # --------------------------------------------------
+        # Mission recovery
+        # --------------------------------------------------
+
+        self.recovery_engine = RecoveryEngine()
+        self.recovery_validator = RecoveryValidator()
+
+        # --------------------------------------------------
+        # Digital forensics
+        # --------------------------------------------------
+
         self.forensic_collector = ForensicCollector()
 
         # --------------------------------------------------
@@ -69,6 +82,10 @@ class ORBITXService:
         self.latest_risk: Any | None = None
         self.latest_response_plan: Any | None = None
         self.latest_ai_analysis: Any | None = None
+
+        self.latest_recovery: Any | None = None
+        self.latest_recovery_validation: dict[str, Any] | None = None
+
         self.latest_evidence: Any | None = None
 
         self.ml_fitted = False
@@ -276,7 +293,8 @@ class ORBITXService:
         self,
     ) -> dict[str, Any]:
         """
-        Run the complete cyber-defense analysis pipeline.
+        Run the complete ORBIT-X cyber-defense and
+        mission-recovery pipeline.
 
         Flow:
 
@@ -290,7 +308,13 @@ class ORBITXService:
             ↓
         AI analysis
             ↓
-        response
+        response planning
+            ↓
+        response execution
+            ↓
+        recovery execution
+            ↓
+        recovery validation
             ↓
         forensics
         """
@@ -376,12 +400,12 @@ class ORBITXService:
         # 7. Capture spacecraft mode before response
         # --------------------------------------------------
 
-        spacecraft_mode_before = (
+        spacecraft_mode_before_response = (
             self.simulator.state.mode.value
         )
 
         # --------------------------------------------------
-        # 8. Execute simulated response
+        # 8. Execute simulated cyber-defense response
         # --------------------------------------------------
 
         self.response_executor.execute(
@@ -389,12 +413,44 @@ class ORBITXService:
             simulator=self.simulator,
         )
 
-        spacecraft_mode_after = (
+        spacecraft_mode_after_response = (
             self.simulator.state.mode.value
         )
 
         # --------------------------------------------------
-        # 9. Forensic evidence
+        # 9. Execute mission recovery
+        # --------------------------------------------------
+
+        recovery_result = self.recovery_engine.recover(
+            self.simulator
+        )
+
+        self.latest_recovery = recovery_result
+
+        # --------------------------------------------------
+        # 10. Validate mission recovery
+        # --------------------------------------------------
+
+        recovery_validation = (
+            self.recovery_validator.validate(
+                self.simulator
+            )
+        )
+
+        self.latest_recovery_validation = (
+            recovery_validation
+        )
+
+        # --------------------------------------------------
+        # 11. Capture final spacecraft mode
+        # --------------------------------------------------
+
+        spacecraft_mode_after_recovery = (
+            self.simulator.state.mode.value
+        )
+
+        # --------------------------------------------------
+        # 12. Digital forensic evidence
         # --------------------------------------------------
 
         evidence = self.forensic_collector.collect(
@@ -402,29 +458,64 @@ class ORBITXService:
             risk=risk,
             response_plan=response_plan,
             spacecraft_mode_before=(
-                spacecraft_mode_before
+                spacecraft_mode_before_response
             ),
             spacecraft_mode_after=(
-                spacecraft_mode_after
+                spacecraft_mode_after_recovery
             ),
         )
 
         self.latest_evidence = evidence
 
+        # --------------------------------------------------
+        # 13. Complete pipeline result
+        # --------------------------------------------------
+
         return {
             "status": "INCIDENT_PROCESSED",
+
             "telemetry": asdict(telemetry),
+
             "detections": [
                 asdict(detection)
                 for detection in detections
             ],
+
             "incident": asdict(incident),
+
             "risk": asdict(risk),
+
             "ai_analysis": asdict(ai_analysis),
+
             "response_plan": asdict(response_plan),
-            "forensic_evidence": asdict(evidence),
-            "spacecraft_state_after_response": (
+
+            "response_state": {
+                "spacecraft_mode_before": (
+                    spacecraft_mode_before_response
+                ),
+                "spacecraft_mode_after": (
+                    spacecraft_mode_after_response
+                ),
+            },
+
+            "recovery": asdict(
+                recovery_result
+            ),
+
+            "recovery_validation": (
+                recovery_validation
+            ),
+
+            "spacecraft_state_after_recovery": (
                 self.get_spacecraft_state()
+            ),
+
+            "forensic_evidence": asdict(
+                evidence
+            ),
+
+            "mission_continuity": (
+                recovery_result.mission_continuity
             ),
         }
 
@@ -474,6 +565,18 @@ class ORBITXService:
             "ai_analysis": (
                 asdict(self.latest_ai_analysis)
                 if self.latest_ai_analysis is not None
+                else None
+            ),
+
+            "recovery": (
+                asdict(self.latest_recovery)
+                if self.latest_recovery is not None
+                else None
+            ),
+
+            "recovery_validation": (
+                self.latest_recovery_validation
+                if self.latest_recovery_validation is not None
                 else None
             ),
 

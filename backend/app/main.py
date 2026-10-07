@@ -7,6 +7,9 @@ from sqlalchemy import text
 from .database import engine
 from .orbitx_service import orbitx_service
 
+from recovery.engine import RecoveryEngine
+from recovery.validator import RecoveryValidator
+
 
 app = FastAPI(
     title="ORBIT-X",
@@ -16,6 +19,14 @@ app = FastAPI(
     ),
     version="0.1.0",
 )
+
+
+# ==========================================================
+# RECOVERY COMPONENTS
+# ==========================================================
+
+recovery_engine = RecoveryEngine()
+recovery_validator = RecoveryValidator()
 
 
 # ==========================================================
@@ -352,6 +363,50 @@ def execute_response() -> dict[str, Any]:
         "spacecraft_mode_before": spacecraft_mode_before,
         "spacecraft_mode_after": spacecraft_mode_after,
         "response": asdict(response_result),
+        "spacecraft": orbitx_service.get_spacecraft_state(),
+    }
+
+
+# ==========================================================
+# MISSION RECOVERY
+# ==========================================================
+
+
+@app.post("/api/recovery/execute")
+def execute_recovery() -> dict[str, Any]:
+    """
+    Execute controlled recovery against the ORBIT-X
+    spacecraft digital twin.
+
+    This endpoint only affects the local simulated
+    spacecraft state. It does not interact with any
+    real spacecraft or external system.
+    """
+
+    spacecraft_mode_before = (
+        orbitx_service.simulator.state.mode.value
+    )
+
+    recovery_result = recovery_engine.recover(
+        orbitx_service.simulator
+    )
+
+    validation_result = recovery_validator.validate(
+        orbitx_service.simulator
+    )
+
+    return {
+        "status": (
+            "RECOVERY_VALIDATED"
+            if validation_result["recovery_valid"]
+            else "RECOVERY_VALIDATION_FAILED"
+        ),
+        "recovery": asdict(recovery_result),
+        "validation": validation_result,
+        "spacecraft_mode_before": spacecraft_mode_before,
+        "spacecraft_mode_after": (
+            orbitx_service.simulator.state.mode.value
+        ),
         "spacecraft": orbitx_service.get_spacecraft_state(),
     }
 
